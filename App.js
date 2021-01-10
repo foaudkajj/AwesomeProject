@@ -22,21 +22,34 @@ const App: () => React$Node = () => {
   const [bookList, setBookList] = useState([])
   const [downloadProgress, setDownloadProgress] = useState(0)
 
-  const downloadSound = async (book) => {
-    await RNFS.downloadFile({
-      fromUrl: `${book.driveDirectDownloadLinkRoot}${book.driveId}`,
-      toFile: `${RNFS.DownloadDirectoryPath}/${book.filename}`,
-      discretionary: true,
-      progressDivider: 100,
-      progressInterval: 100,
-      // begin: (res) => {
-      //   console.log(res)
-      // },
-      progress: (res) => {
-        const downloadPercent = (((res.bytesWritten / 1000) * 100) / book.filesizeKB)
-        setDownloadProgress(downloadPercent > 100 ? 100 : downloadPercent);
-      }
-    })
+  const downloadSound = async (booksTitle, bookList) => {
+    let downloadedBooksCount = 0;
+    const booksCount = bookList.length;
+    for (const book of bookList) {
+      let result = await RNFS.downloadFile({
+        fromUrl: `${book.driveDirectDownloadLinkRoot}${book.driveId}`,
+        toFile: `${RNFS.ExternalDirectoryPath}/${book.filename}`,
+        discretionary: true,
+        progressDivider: 100,
+        progressInterval: 100,
+        begin: (res) => {
+          downloadedBooksCount += 1;
+          console.log(`${downloadedBooksCount}. Kayıt İndirilmeye Başlandı`)
+        },
+        // progress: (res) => {
+        //   const downloadPercent = ((((res.bytesWritten / 1000) * 100) / book.filesizeKB))
+        //   console.log(downloadPercent)
+        //   setDownloadProgress(downloadPercent > 100 ? 100 : downloadPercent);
+        // }
+      }).promise;
+      console.log(result.statusCode)
+      setDownloadProgress((downloadedBooksCount / booksCount) * 100);
+    }
+
+    if (downloadedBooksCount == booksCount) {
+      console.log("İndirme Tamamlanı")
+    }
+
   }
 
   useEffect(() => {
@@ -55,23 +68,17 @@ const App: () => React$Node = () => {
           value={downloadProgress}
         />
         {Object.entries(bookList).map(
-          ([key, value]) => {
+          ([booksTitle, bookList]) => {
             return <Card>
-              <Card.Title>{key}</Card.Title>
+              <Card.Title>{booksTitle}</Card.Title>
               <Card.Divider />
               {
-
-                value.map((book, i) => {
-
-                  return (
-                    <View key={i}>
-                      <Button
-                        onPress={() => downloadSound(book)}
-                        title={book.filename}
-                      />
-                    </View>
-                  );
-                })
+                <View key={booksTitle}>
+                  <Button
+                    onPress={() => downloadSound(booksTitle, bookList)}
+                    title={'İndir'}
+                  />
+                </View>
               }
             </Card>
 
